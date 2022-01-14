@@ -83,11 +83,12 @@ export class Player {
   }
 
   getCurrentRenderItem(): RenderItem | undefined {
-    return this.renderItems.find(
+    const candidates = this.renderItems.filter(
       (item) =>
         item.absoluteStart <= this.currentTime &&
         item.absoluteStart + item.length >= this.currentTime
     );
+    return candidates[candidates.length - 1];
   }
 
   clampCurrentTimeToRenderItemsRange(): void {
@@ -134,18 +135,21 @@ export class Player {
     onRenderItemDone: () => void,
     onNextRenderItem: () => void
   ): void {
+    const startTime = this.currentTime;
     const lastRenderItem = this.renderItems[this.renderItems.length - 1];
     const callback = () => {
       const time = Math.min(getTime(), renderItem.absoluteStart + renderItem.length);
       this.updateCurrentTime(time);
       if (!this.playing) {
         onRenderItemDone();
-      } else if (this.currentTime >= lastRenderItem.absoluteStart + lastRenderItem.length) {
+      } else if (time >= lastRenderItem.absoluteStart + lastRenderItem.length) {
         onRenderItemDone();
         setTimeout(() => {
           this.store.dispatch(setPlay(false));
         });
       } else if (time >= renderItem.absoluteStart + renderItem.length) {
+        if (time == startTime)
+          throw new Error('something is seriously bork, playRenderItem didnt advance time');
         onRenderItemDone();
         onNextRenderItem();
       } else {
