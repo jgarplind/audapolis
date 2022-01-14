@@ -76,11 +76,12 @@ function useComputeCursorPosition(parentElement: HTMLElement | null | undefined)
       lastItem &&
       last.current?.content == content &&
       last.current?.parentElement == parentElement &&
-      lastItem?.absoluteStart <= time &&
-      lastItem?.absoluteStart + lastItem?.length >= time &&
+      lastItem?.absoluteStart < time &&
+      lastItem?.absoluteStart + lastItem?.length > time &&
       document.body.contains(last.current?.itemElement)
     )
   ) {
+    console.log('recalculating cache');
     const items = getItemsAtTime(DocumentGenerator.fromParagraphs(content).enumerate(), time);
     const item = items[items.length - 1];
     if (!item) return null;
