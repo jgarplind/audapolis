@@ -156,6 +156,8 @@ export function Document(): JSX.Element {
       dispatch(goLeft());
     } else if (e.key == 'ArrowRight') {
       dispatch(goRight());
+    } else if (e.key == 'ArrowUp' || e.key == 'ArrowDown') {
+      e.preventDefault();
     }
   };
 
