@@ -14,6 +14,7 @@ import { createActionWithReducer, createAsyncActionWithReducer } from '../util';
 import { EditorState } from './types';
 import { selectLeft } from './selection';
 import { setUserSetTime } from './play';
+import { chainContentMergeParagraphsIfEqualSpeaker } from './edit_util';
 
 export const insertParagraphBreak = createActionWithReducer<EditorState>(
   'editor/insertParagraphBreak',
@@ -168,7 +169,7 @@ export const cut = createAsyncActionWithReducer<EditorState>(
   'editor/cut',
   async (arg, { dispatch }) => {
     await dispatch(copy());
-    await dispatch(deleteSelection());
+    dispatch(deleteSelection());
   }
 );
 
@@ -191,15 +192,16 @@ export const paste = createAsyncActionWithReducer<EditorState, void, Document>(
     fulfilled: (state, payload) => {
       state.selection = null;
       state.document.sources = { ...state.document.sources, ...payload.sources };
-      const beforeSlice = DocumentGenerator.fromParagraphs(state.document.content).filter(
-        (item) => item.absoluteStart + item.length <= state.currentTimePlayer
-      );
-      const pastedSlice = DocumentGenerator.fromParagraphs(payload.content);
-      const afterSlice = DocumentGenerator.fromParagraphs(state.document.content).filter(
-        (item) => item.absoluteStart + item.length > state.currentTimePlayer
-      );
+      const beforeSlice = DocumentGenerator.fromParagraphs(state.document.content)
+        .filter((item) => item.absoluteStart + item.length <= state.currentTimePlayer)
+        .toParagraphs();
+      const pastedSlice = payload.content;
+      const afterSlice = DocumentGenerator.fromParagraphs(state.document.content)
+        .filter((item) => item.absoluteStart + item.length > state.currentTimePlayer)
+        .toParagraphs();
 
-      state.document.content = beforeSlice.chain(pastedSlice).chain(afterSlice).toParagraphs();
+      const partOne = chainContentMergeParagraphsIfEqualSpeaker(beforeSlice, pastedSlice);
+      state.document.content = chainContentMergeParagraphsIfEqualSpeaker(partOne, afterSlice);
     },
     rejected: (state, payload) => {
       console.error('paste rejected:', payload);
